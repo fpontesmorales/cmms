@@ -1,0 +1,10 @@
+:root {
+    --bs-primary: #2F9E41;
+    --bs-primary-rgb: 47, 158, 65;
+}
+
+/* Opcional: correção para forçar a cor no botão, se necessário */
+.btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}

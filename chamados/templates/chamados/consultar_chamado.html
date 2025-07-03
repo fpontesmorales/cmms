@@ -1,0 +1,94 @@
+{% extends 'chamados/base.html' %}
+{% load static %}
+{% block title %}Consultar Meus Chamados - CMMS INFRA-IFCE{% endblock %}
+
+{% block content %}
+<style>
+    .clickable-row {
+        cursor: pointer;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h1 class="h4 mb-0">Consultar Meus Chamados</h1>
+            </div>
+            <div class="card-body">
+                {% if user.is_authenticated %}
+                    <p class="lead">Como você está logado, estamos exibindo os chamados para o e-mail associado à sua conta: <strong>{{ user.email }}</strong></p>
+                {% else %}
+                    <p>Digite o e-mail que você utilizou na abertura dos chamados para ver o histórico.</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            {{ form.email_solicitante }}
+                            <button type="submit" class="btn btn-primary">Consultar</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if email_buscado %}
+        <div class="card">
+            <div class="card-header"><h2 class="h5 mb-0">Resultados para: {{ email_buscado }}</h2></div>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#ID</th>
+                            <th>Status</th>
+                            <th>Tipo de Serviço</th>
+                            <th>Local</th>
+                            <th>Descrição</th>
+                            <th>Última Atualização</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for chamado in chamados_encontrados %}
+                        <tr class="clickable-row" data-href="{% url 'chamado_detalhe' chamado.id %}">
+                            <th>{{ chamado.id }}</th>
+                            <td>
+                                {% if chamado.status == 'ABERTA' %}
+                                    <span class="badge bg-warning text-dark">{{ chamado.get_status_display }}</span>
+                                {% elif chamado.status == 'EM_ANALISE' or chamado.status == 'EM_EXECUCAO' %}
+                                    <span class="badge bg-info text-dark">{{ chamado.get_status_display }}</span>
+                                {% elif chamado.status == 'CONCLUIDO' %}
+                                    <span class="badge bg-success">{{ chamado.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ chamado.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ chamado.tipo_servico.nome }}</td>
+                            <td>{{ chamado.sala }}</td>
+                            <td>{{ chamado.descricao|truncatewords:8 }}</td>
+                            <td>{{ chamado.data_modificacao|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">Nenhum chamado encontrado para este e-mail.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('.clickable-row');
+        rows.forEach(function(row) {
+            row.addEventListener('click', function() {
+                window.location.href = this.dataset.href;
+            });
+        });
+    });
+</script>
+{% endblock %}

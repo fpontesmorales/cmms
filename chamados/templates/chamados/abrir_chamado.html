@@ -1,0 +1,108 @@
+{% extends 'chamados/base.html' %}
+{% load static %}
+
+{% block title %}Abrir Novo Chamado - CMMS INFRA-IFCE{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h1 class="h4 mb-0">Abertura de Ordem de Serviço de Infraestrutura</h1>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Preencha os campos abaixo para solicitar um serviço.</p>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.email_solicitante.id_for_label }}" class="form-label">E-mail do Solicitante</label>
+                        {{ form.email_solicitante }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.tipo_servico.id_for_label }}" class="form-label">Tipo de Serviço</label>
+                        {{ form.tipo_servico }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.bloco.id_for_label }}" class="form-label">Bloco do Serviço</label>
+                        {{ form.bloco }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.sala.id_for_label }}" class="form-label">Sala do Bloco</label>
+                        {{ form.sala }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.ativo.id_for_label }}" class="form-label">Ativo Específico (Opcional)</label>
+                        {{ form.ativo }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição Detalhada do Serviço</label>
+                        {{ form.descricao }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.foto.id_for_label }}" class="form-label">Foto (Opcional)</label>
+                        {{ form.foto }}
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Enviar Chamado</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const blocoSelect = document.getElementById('{{ form.bloco.id_for_label }}');
+        const salaSelect = document.getElementById('{{ form.sala.id_for_label }}');
+        const ativoSelect = document.getElementById('{{ form.ativo.id_for_label }}');
+        
+        const salasUrlTemplate = "{% url 'get_salas_por_bloco' 0 %}";
+        const ativosUrlTemplate = "{% url 'get_ativos_por_sala' 0 %}";
+
+        // Quando o Bloco muda...
+        blocoSelect.addEventListener('change', function() {
+            const blocoId = this.value;
+            // Limpa os dois menus seguintes
+            salaSelect.innerHTML = '<option value="">--- Selecione um Bloco Primeiro ---</option>';
+            ativoSelect.innerHTML = '<option value="">--- Selecione uma Sala Primeiro ---</option>';
+
+            if (blocoId) {
+                salaSelect.innerHTML = '<option value="">--- Carregando Salas... ---</option>';
+                const finalUrl = salasUrlTemplate.replace('0', blocoId);
+                fetch(finalUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        salaSelect.innerHTML = '<option value="">--- Selecione uma Sala ---</option>';
+                        data.salas.forEach(function(sala) {
+                            salaSelect.add(new Option(sala.nome, sala.id));
+                        });
+                    });
+            }
+        });
+
+        // Quando a Sala muda...
+        salaSelect.addEventListener('change', function() {
+            const salaId = this.value;
+            ativoSelect.innerHTML = '<option value="">--- Selecione uma Sala Primeiro ---</option>';
+
+            if (salaId) {
+                ativoSelect.innerHTML = '<option value="">--- Carregando Ativos... ---</option>';
+                const finalUrl = ativosUrlTemplate.replace('0', salaId);
+                fetch(finalUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        ativoSelect.innerHTML = '<option value="">--- Nenhum em específico ---</option>';
+                        data.ativos.forEach(function(ativo) {
+                            ativoSelect.add(new Option(ativo.nome, ativo.id));
+                        });
+                    });
+            }
+        });
+    });
+</script>
+{% endblock %}

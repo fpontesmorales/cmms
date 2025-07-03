@@ -1,0 +1,41 @@
+{% extends 'chamados/base.html' %}
+{% block title %}Editar Chamado #{{ chamado.id }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h2">Editar Chamado #{{ chamado.id }}</h1>
+            <a href="{% url 'painel' %}" class="btn btn-secondary">Voltar para o Painel</a>
+        </div>
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">{{ chamado.tipo_servico.nome }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ chamado.sala }}</h6>
+                <p><strong>Solicitante:</strong> {{ chamado.email_solicitante }}</p>
+                <p><strong>Descrição do problema:</strong><br>{{ chamado.descricao|linebreaksbr }}</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Atualizar Informações do Chamado</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.status.label }}</label>
+                        {{ form.status }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.tecnico_responsavel.label }}</label>
+                        {{ form.tecnico_responsavel }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.observacoes_tecnicas.label }}</label>
+                        {{ form.observacoes_tecnicas }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

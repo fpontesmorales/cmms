@@ -1,0 +1,24 @@
+{% extends 'chamados/base.html' %}
+
+{% block title %}Chamado Enviado com Sucesso - CMMS INFRA-IFCE{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-7 text-center">
+        
+        <div class="alert alert-success" role="alert">
+            <h1 class="alert-heading h4">Chamado Enviado com Sucesso!</h1>
+            <p>Sua solicitação foi registrada com o número <strong>#{{ chamado.id }}</strong>.</p>
+            <hr>
+            <p class="mb-0">Guarde este número para futuras consultas. Você também receberá atualizações no e-mail <strong>{{ chamado.email_solicitante }}</strong>.</p>
+        </div>
+
+        <div class="mt-4">
+            <p>O que você gostaria de fazer agora?</p>
+            <a href="{% url 'consultar_chamado' %}?email={{ chamado.email_solicitante }}" class="btn btn-secondary btn-lg mx-2">Ver Meus Chamados</a>
+            <a href="{% url 'abrir_chamado' %}" class="btn btn-primary btn-lg mx-2">Abrir um Novo Chamado</a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

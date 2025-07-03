@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CMMS INFRA-IFCE{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'chamados/custom.css' %}">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'abrir_chamado' %}">
+                <strong>CMMS INFRA-IFCE</strong>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'abrir_chamado' %}">Abrir Chamado</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'consultar_chamado' %}">Meus Chamados</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'painel' %}"><strong>Painel da Equipe</strong></a>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                Olá, {{ user.first_name|default:user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="{% url 'admin:index' %}">Admin Completo</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{% url 'logout' %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item">Sair (Logout)</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Login da Equipe</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>
