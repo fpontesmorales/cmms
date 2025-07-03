@@ -7,11 +7,9 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-_2a7r)ix4wllaq
 
 DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
-ALLOWED_HOSTS = [
-    '127.0.0.1', 
-    '10.10.2.88', 
-    'fpontesmorales.pythonanywhere.com'
-]
+ALLOWED_HOSTS = ['127.0.0.1', '10.10.2.88', 'fpontesmorales.pythonanywhere.com']
+
+CSRF_TRUSTED_ORIGINS = ['https://fpontesmorales.pythonanywhere.com']
 
 INSTALLED_APPS = [
     'jazzmin',
@@ -109,9 +107,6 @@ LOGIN_REDIRECT_URL = '/painel/'
 LOGIN_URL = '/accounts/login/'
 LOGOUT_REDIRECT_URL = '/'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+DEFAULT_FROM_EMAIL = 'infra.caucaia@ifce.edu.br' # Lembre-se de usar seu e-mail verificado
