@@ -2,15 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.urls import reverse
 from .forms import ChamadoForm, ConsultaChamadoForm, InteracaoForm, ChamadoUpdateForm, ChamadoFilterForm
 from .models import Chamado, Interacao
 from cadastros.models import Sala
 from inventario.models import Ativo
-
-# Importações para o teste direto com SendGrid
-import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
 
 def abrir_chamado_view(request):
     if request.method == 'POST':
@@ -19,29 +17,34 @@ def abrir_chamado_view(request):
             novo_chamado = form.save()
             request.session['email_solicitante'] = novo_chamado.email_solicitante
 
-            # --- INÍCIO DO CÓDIGO DE TESTE DIRETO ---
-            print("--- INICIANDO TESTE DE ENVIO DIRETO DENTRO DA VIEW ---")
-            api_key = os.environ.get('SENDGRID_API_KEY')
-            from_email = 'infra.caucaia@ifce.edu.br'
-            to_email = novo_chamado.email_solicitante
-
-            if not api_key:
-                print("ERRO NA VIEW: Chave da API não encontrada!")
-            else:
-                print(f"Chave encontrada, iniciando com {api_key[:5]}...")
-                assunto = f"[TESTE DIRETO] Chamado #{novo_chamado.id}"
-                conteudo = f'<strong>Este é um teste direto da view para o chamado {novo_chamado.id}.</strong>'
-                message = Mail(from_email=from_email, to_emails=to_email, subject=assunto, html_content=conteudo)
+            try:
+                assunto = f"Confirmação de Abertura de Chamado #{novo_chamado.id}"
                 
-                try:
-                    sendgrid_client = SendGridAPIClient(api_key)
-                    response = sendgrid_client.send(message)
-                    print(f"SUCESSO NA VIEW! Status da API: {response.status_code}")
-                except Exception as e:
-                    print(f"ERRO NA VIEW AO ENVIAR DIRETAMENTE: {e}")
-            
-            print("--- FIM DO TESTE DE ENVIO DIRETO ---")
-            # --- FIM DO CÓDIGO DE TESTE ---
+                url_detalhe = request.build_absolute_uri(
+                    reverse('chamado_detalhe', args=[novo_chamado.id])
+                )
+                
+                contexto_email = {
+                    'chamado': novo_chamado,
+                    'url_detalhe': url_detalhe
+                }
+                
+                corpo_html = render_to_string('emails/confirmacao_chamado.html', contexto_email)
+                corpo_texto = f"Seu chamado #{novo_chamado.id} foi aberto com sucesso. Acompanhe em: {url_detalhe}"
+
+                email_remetente = 'infra.caucaia@ifce.edu.br'
+                email_destinatario = [novo_chamado.email_solicitante]
+
+                send_mail(
+                    subject=assunto,
+                    message=corpo_texto,
+                    from_email=email_remetente,
+                    recipient_list=email_destinatario,
+                    html_message=corpo_html,
+                    fail_silently=False
+                )
+            except Exception as e:
+                print(f"Erro ao tentar enviar e-mail de confirmação: {e}")
 
             return redirect('chamado_sucesso', chamado_id=novo_chamado.id)
     else:
@@ -57,7 +60,9 @@ def abrir_chamado_view(request):
 
 def chamado_sucesso_view(request, chamado_id):
     chamado = get_object_or_404(Chamado, pk=chamado_id)
-    contexto = {'chamado': chamado}
+    contexto = {
+        'chamado': chamado
+    }
     return render(request, 'chamados/chamado_sucesso.html', contexto)
 
 def consultar_chamado_view(request):
