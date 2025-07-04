@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -16,36 +17,17 @@ def abrir_chamado_view(request):
         if form.is_valid():
             novo_chamado = form.save()
             request.session['email_solicitante'] = novo_chamado.email_solicitante
-
             try:
                 assunto = f"Confirmação de Abertura de Chamado #{novo_chamado.id}"
-                
-                url_detalhe = request.build_absolute_uri(
-                    reverse('chamado_detalhe', args=[novo_chamado.id])
-                )
-                
-                contexto_email = {
-                    'chamado': novo_chamado,
-                    'url_detalhe': url_detalhe
-                }
-                
+                url_detalhe = request.build_absolute_uri(reverse('chamado_detalhe', args=[novo_chamado.id]))
+                contexto_email = {'chamado': novo_chamado, 'url_detalhe': url_detalhe}
                 corpo_html = render_to_string('emails/confirmacao_chamado.html', contexto_email)
                 corpo_texto = f"Seu chamado #{novo_chamado.id} foi aberto com sucesso. Acompanhe em: {url_detalhe}"
-
                 email_remetente = 'infra.caucaia@ifce.edu.br'
                 email_destinatario = [novo_chamado.email_solicitante]
-
-                send_mail(
-                    subject=assunto,
-                    message=corpo_texto,
-                    from_email=email_remetente,
-                    recipient_list=email_destinatario,
-                    html_message=corpo_html,
-                    fail_silently=False
-                )
+                send_mail(subject=assunto, message=corpo_texto, from_email=email_remetente, recipient_list=email_destinatario, html_message=corpo_html, fail_silently=False)
             except Exception as e:
                 print(f"Erro ao tentar enviar e-mail de confirmação: {e}")
-
             return redirect('chamado_sucesso', chamado_id=novo_chamado.id)
     else:
         initial_data = {}
@@ -60,8 +42,10 @@ def abrir_chamado_view(request):
 
 def chamado_sucesso_view(request, chamado_id):
     chamado = get_object_or_404(Chamado, pk=chamado_id)
+    api_key_vista_pela_view = os.environ.get('SENDGRID_API_KEY', '!!! CHAVE NÃO ENCONTRADA !!!')
     contexto = {
-        'chamado': chamado
+        'chamado': chamado,
+        'api_key_debug': api_key_vista_pela_view
     }
     return render(request, 'chamados/chamado_sucesso.html', contexto)
 
