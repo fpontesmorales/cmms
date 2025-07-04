@@ -1,19 +1,26 @@
 {% extends 'chamados/base.html' %}
-
 {% block title %}Chamado Enviado com Sucesso - CMMS INFRA-IFCE{% endblock %}
-
 {% block content %}
 <div class="row justify-content-center mt-5">
-    <div class="col-md-8 col-lg-7 text-center">
-        
-        <div class="alert alert-success" role="alert">
-            <h1 class="alert-heading h4">Chamado Enviado com Sucesso!</h1>
-            <p>Sua solicitação foi registrada em nosso sistema com o número <strong>#{{ chamado.id }}</strong>.</p>
-            <hr>
-            <p class="mb-0">Você receberá um e-mail de confirmação em instantes.</p>
+    <div class="col-md-8 col-lg-7">
+        <div class="text-center">
+            <h1 class="h2 text-success">Chamado Enviado com Sucesso!</h1>
+            <p class="lead">Sua solicitação foi registrada e um e-mail de confirmação foi enviado.</p>
         </div>
-
-        <div class="mt-4">
+        <div class="card mt-4">
+            <div class="card-header">
+                <strong>Resumo do seu Chamado: #{{ chamado.id }}</strong>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Tipo de Serviço:</strong> {{ chamado.tipo_servico.nome }}</li>
+                <li class="list-group-item"><strong>Local:</strong> {{ chamado.sala }}</li>
+                {% if chamado.ativo %}
+                <li class="list-group-item"><strong>Ativo Específico:</strong> {{ chamado.ativo.nome }}</li>
+                {% endif %}
+                <li class="list-group-item"><strong>Descrição:</strong> {{ chamado.descricao|linebreaksbr }}</li>
+            </ul>
+        </div>
+        <div class="text-center mt-4">
             <a href="{% url 'consultar_chamado' %}?email={{ chamado.email_solicitante }}" class="btn btn-secondary btn-lg mx-2">Ver Meus Chamados</a>
             <a href="{% url 'abrir_chamado' %}" class="btn btn-primary btn-lg mx-2">Abrir um Novo Chamado</a>
         </div>

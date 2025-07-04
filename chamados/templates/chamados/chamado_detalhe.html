@@ -1,28 +1,28 @@
 {% extends 'chamados/base.html' %}
+{% load static %}
 {% block title %}Detalhes do Chamado #{{ chamado.id }} - CMMS INFRA-IFCE{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10 col-lg-8">
+<div class="row">
+    <div class="col-lg-7">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1 class="h2">Detalhes do Chamado #{{ chamado.id }}</h1>
             <a href="{% url 'consultar_chamado' %}?email={{ chamado.email_solicitante }}" class="btn btn-secondary">Voltar para a Lista</a>
         </div>
+        
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>Aberto em: {{ chamado.data_abertura|date:"d/m/Y à\s H:i" }}</span>
-                <span class="badge bg-success fs-6">{{ chamado.get_status_display }}</span>
+                {% if chamado.status == 'ABERTA' %}<span class="badge bg-warning text-dark">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'EM_ANALISE' %}<span class="badge bg-secondary">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'EM_EXECUCAO' %}<span class="badge bg-info text-dark">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'PENDENTE' %}<span class="badge bg-danger">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'CONCLUIDO' %}<span class="badge bg-success">{{ chamado.get_status_display }}</span>{% else %}<span class="badge bg-dark">{{ chamado.get_status_display }}</span>{% endif %}
             </div>
             <div class="card-body">
                 <h5 class="card-title">{{ chamado.tipo_servico.nome }}</h5>
                 <h6 class="card-subtitle mb-2 text-muted">Local: {{ chamado.sala }}</h6>
+                <p><strong>Solicitante:</strong> {{ chamado.email_solicitante }}</p>
                 <hr>
-                <p class="card-text"><strong>Descrição Completa do Problema:</strong></p>
+                <p class="card-text"><strong>Descrição do Problema:</strong></p>
                 <p class="p-3 bg-light border rounded">{{ chamado.descricao|linebreaksbr }}</p>
-                {% if chamado.foto %}
-                    <hr>
-                    <p><strong>Foto Anexada:</strong></p>
-                    <img src="{{ chamado.foto.url }}" class="img-fluid rounded border" alt="Foto do chamado">
-                {% endif %}
+                {% if chamado.foto %}<p><strong>Foto Anexada:</strong><br><img src="{{ chamado.foto.url }}" class="img-fluid rounded border" alt="Foto do chamado"></p>{% endif %}
             </div>
         </div>
 
@@ -31,7 +31,7 @@
         {% for interacao in chamado.interacoes.all %}
             <div class="card mb-3 {% if interacao.usuario %}border-primary{% else %}border-secondary{% endif %}">
                 <div class="card-header small text-muted {% if interacao.usuario %}bg-primary-subtle{% endif %}">
-                    <strong>{% if interacao.usuario %}Equipe IFCE ({{ interacao.usuario.get_full_name|default:interacao.usuario.username }}){% else %}Solicitante{% endif %}</strong>
+                    <strong>{% if interacao.usuario %}{{ interacao.usuario.get_full_name|default:interacao.usuario.username }}{% else %}Solicitante{% endif %}</strong>
                     respondeu em {{ interacao.data_interacao|date:"d/m/Y à\s H:i" }}
                 </div>
                 <div class="card-body">{{ interacao.mensagem|linebreaksbr }}</div>
@@ -39,20 +39,80 @@
         {% empty %}
             <p class="text-muted">Nenhuma interação neste chamado ainda.</p>
         {% endfor %}
+    </div>
 
-        {% if pode_comentar %}
-        <hr>
-        <div class="card mt-4">
-             <div class="card-header"><h3 class="h5 mb-0">Adicionar Comentário ou Atualização</h3></div>
+    <div class="col-lg-5">
+        <div class="card sticky-top" style="top: 2rem;">
+            <div class="card-header"><h4>Suas Ações</h4></div>
             <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">{{ form_interacao.mensagem }}</div>
-                    <button type="submit" class="btn btn-primary">Enviar Mensagem</button>
-                </form>
+                {% if chamado.status == 'CONCLUIDO' and pode_comentar %}
+                    <h5>Serviço Concluído</h5>
+                    <p>O serviço foi marcado como concluído. Se estiver tudo certo, por favor, avalie o atendimento para registrar o encerramento do chamado.</p>
+                    
+                    <form action="{% url 'avaliar_chamado' chamado.id %}" method="post" class="mb-3">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ form_avaliacao.nota_avaliacao.label }}</label>
+                            {{ form_avaliacao.nota_avaliacao }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form_avaliacao.comentario_avaliacao.id_for_label }}" class="form-label">{{ form_avaliacao.comentario_avaliacao.label }}</label>
+                            {{ form_avaliacao.comentario_avaliacao }}
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Enviar Avaliação e Arquivar</button>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reaberturaModal">Problema não resolvido? (Reabrir)</button>
+                    </div>
+
+                {% elif chamado.status == 'ARQUIVADO' %}
+                    <div class="alert alert-secondary">
+                        <h5 class="alert-heading">Chamado Arquivado</h5>
+                        <p>Este chamado foi concluído e arquivado. Obrigado pela sua colaboração!</p>
+                        {% if chamado.nota_avaliacao %}
+                        <hr>
+                        <p class="mb-0">Sua avaliação: <strong>{{ chamado.get_nota_avaliacao_display }}</strong></p>
+                        {% endif %}
+                    </div>
+                
+                {% elif pode_comentar %}
+                    <h5>Adicionar Comentário</h5>
+                    <p>Se tiver alguma dúvida ou informação adicional, envie uma mensagem para nossa equipe.</p>
+                    <form action="{% url 'chamado_detalhe' chamado.id %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="enviar_interacao" value="true">
+                        <div class="mb-3">{{ form_interacao.mensagem }}</div>
+                        <button type="submit" class="btn btn-secondary">Enviar Mensagem</button>
+                    </form>
+                {% else %}
+                    <p class="text-muted">Aguardando atualização da equipe.</p>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="reaberturaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Reabrir Chamado</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form action="{% url 'reabrir_chamado' chamado.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Por favor, informe por que o serviço não foi satisfatório e o chamado precisa ser reaberto.</p>
+                    {{ form_reabertura.motivo.label_tag }}
+                    {{ form_reabertura.motivo }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Reabrir Chamado</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
