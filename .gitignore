@@ -10,11 +10,13 @@ __pycache__/
 db.sqlite3
 db.sqlite3-journal
 
-# Arquivos de mídia enviados por usuários (não queremos versionar os uploads)
-media/
+# Arquivos de mídia enviados por usuários
+# É uma boa prática não versionar os uploads de teste
+/media/
 
-# Arquivos de configuração local (se existirem)
-local_settings.py
+# Arquivo de segredos do ambiente
+.env
 
-# Outros arquivos de sistema e de pacotes
+# Arquivos de sistema operacional
 .DS_Store
+Thumbs.db
