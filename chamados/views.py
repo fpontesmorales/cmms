@@ -2,11 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.core.mail import send_mail
 from .forms import ChamadoForm, ConsultaChamadoForm, InteracaoForm, ChamadoUpdateForm, ChamadoFilterForm
 from .models import Chamado, Interacao
 from cadastros.models import Sala
 from inventario.models import Ativo
+
+# Importações para o teste direto com SendGrid
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 def abrir_chamado_view(request):
     if request.method == 'POST':
@@ -14,14 +18,31 @@ def abrir_chamado_view(request):
         if form.is_valid():
             novo_chamado = form.save()
             request.session['email_solicitante'] = novo_chamado.email_solicitante
-            try:
-                assunto = f"Confirmação de Abertura de Chamado #{novo_chamado.id}"
-                mensagem = f"Olá,\n\nSeu chamado foi aberto com sucesso com o número #{novo_chamado.id}.\n\nDetalhes:\n- Tipo de Serviço: {novo_chamado.tipo_servico.nome}\n- Local: {novo_chamado.sala}\n- Descrição: {novo_chamado.descricao}\n\nVocê pode acompanhar o andamento através da página 'Meus Chamados'.\n\nAtenciosamente,\nEquipe de Infraestrutura - IFCE Campus Caucaia"
-                email_remetente = 'nao-responda@ifce.edu.br'
-                email_destinatario = [novo_chamado.email_solicitante]
-                send_mail(assunto, mensagem, email_remetente, email_destinatario, fail_silently=False)
-            except Exception as e:
-                print(f"Erro ao tentar enviar e-mail de confirmação: {e}")
+
+            # --- INÍCIO DO CÓDIGO DE TESTE DIRETO ---
+            print("--- INICIANDO TESTE DE ENVIO DIRETO DENTRO DA VIEW ---")
+            api_key = os.environ.get('SENDGRID_API_KEY')
+            from_email = 'infra.caucaia@ifce.edu.br'
+            to_email = novo_chamado.email_solicitante
+
+            if not api_key:
+                print("ERRO NA VIEW: Chave da API não encontrada!")
+            else:
+                print(f"Chave encontrada, iniciando com {api_key[:5]}...")
+                assunto = f"[TESTE DIRETO] Chamado #{novo_chamado.id}"
+                conteudo = f'<strong>Este é um teste direto da view para o chamado {novo_chamado.id}.</strong>'
+                message = Mail(from_email=from_email, to_emails=to_email, subject=assunto, html_content=conteudo)
+                
+                try:
+                    sendgrid_client = SendGridAPIClient(api_key)
+                    response = sendgrid_client.send(message)
+                    print(f"SUCESSO NA VIEW! Status da API: {response.status_code}")
+                except Exception as e:
+                    print(f"ERRO NA VIEW AO ENVIAR DIRETAMENTE: {e}")
+            
+            print("--- FIM DO TESTE DE ENVIO DIRETO ---")
+            # --- FIM DO CÓDIGO DE TESTE ---
+
             return redirect('chamado_sucesso', chamado_id=novo_chamado.id)
     else:
         initial_data = {}
@@ -30,6 +51,7 @@ def abrir_chamado_view(request):
         elif 'email_solicitante' in request.session:
             initial_data['email_solicitante'] = request.session.get('email_solicitante')
         form = ChamadoForm(initial=initial_data)
+    
     contexto = {'form': form}
     return render(request, 'chamados/abrir_chamado.html', contexto)
 
@@ -63,25 +85,16 @@ def chamado_detalhe_view(request, chamado_id):
     chamado = get_object_or_404(Chamado, pk=chamado_id)
     email_na_sessao = request.session.get('email_solicitante')
     pode_comentar = email_na_sessao and (email_na_sessao.lower() == chamado.email_solicitante.lower())
-
     if request.method == 'POST' and pode_comentar:
         form_interacao = InteracaoForm(request.POST)
         if form_interacao.is_valid():
             nova_interacao = form_interacao.save(commit=False)
             nova_interacao.chamado = chamado
-            nova_interacao.save()
-            
-            # Força a atualização do campo 'data_modificacao' do chamado pai
             chamado.save()
-            
+            nova_interacao.save()
             return redirect('chamado_detalhe', chamado_id=chamado.id)
-    
     form_interacao = InteracaoForm()
-    contexto = {
-        'chamado': chamado,
-        'form_interacao': form_interacao,
-        'pode_comentar': pode_comentar,
-    }
+    contexto = {'chamado': chamado, 'form_interacao': form_interacao, 'pode_comentar': pode_comentar}
     return render(request, 'chamados/chamado_detalhe.html', contexto)
 
 def get_salas_por_bloco(request, bloco_id):
