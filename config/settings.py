@@ -107,6 +107,5 @@ LOGIN_REDIRECT_URL = '/painel/'
 LOGIN_URL = '/accounts/login/'
 LOGOUT_REDIRECT_URL = '/'
 
-EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
-SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-DEFAULT_FROM_EMAIL = 'infra.caucaia@ifce.edu.br' # Lembre-se de usar seu e-mail verificado
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'infra.caucaia@ifce.edu.br'
