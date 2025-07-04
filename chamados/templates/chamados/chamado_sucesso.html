@@ -1,6 +1,7 @@
 {% extends 'chamados/base.html' %}
-{% load static %}
+
 {% block title %}Chamado Enviado com Sucesso - CMMS INFRA-IFCE{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center mt-5">
     <div class="col-md-8 col-lg-7 text-center">
@@ -8,16 +9,13 @@
         <div class="alert alert-success" role="alert">
             <h1 class="alert-heading h4">Chamado Enviado com Sucesso!</h1>
             <p>Sua solicitação foi registrada em nosso sistema com o número <strong>#{{ chamado.id }}</strong>.</p>
-        </div>
-
-        <div class="alert alert-info mt-4">
-            <p class="mb-1"><strong>INFORMAÇÃO DE DEBUG:</strong></p>
-            <p class="mb-1">Valor da SENDGRID_API_KEY que a aplicação está vendo:</p>
-            <pre class="mb-0"><code>{{ api_key_debug }}</code></pre>
+            <hr>
+            <p class="mb-0">Você receberá um e-mail de confirmação em instantes.</p>
         </div>
 
         <div class="mt-4">
-            <a href="{% url 'abrir_chamado' %}" class="btn btn-primary btn-lg">Abrir um Novo Chamado</a>
+            <a href="{% url 'consultar_chamado' %}?email={{ chamado.email_solicitante }}" class="btn btn-secondary btn-lg mx-2">Ver Meus Chamados</a>
+            <a href="{% url 'abrir_chamado' %}" class="btn btn-primary btn-lg mx-2">Abrir um Novo Chamado</a>
         </div>
     </div>
 </div>

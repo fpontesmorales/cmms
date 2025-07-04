@@ -18,7 +18,6 @@ def abrir_chamado_view(request):
         if form.is_valid():
             novo_chamado = form.save()
             request.session['email_solicitante'] = novo_chamado.email_solicitante
-
             try:
                 api_key = os.environ.get('SENDGRID_API_KEY')
                 if api_key:
@@ -26,20 +25,17 @@ def abrir_chamado_view(request):
                     url_detalhe = request.build_absolute_uri(reverse('chamado_detalhe', args=[novo_chamado.id]))
                     contexto_email = {'chamado': novo_chamado, 'url_detalhe': url_detalhe}
                     corpo_html = render_to_string('emails/confirmacao_chamado.html', contexto_email)
-
                     message = Mail(
                         from_email=('infra.caucaia@ifce.edu.br', 'CMMS Infra IFCE Caucaia'),
                         to_emails=novo_chamado.email_solicitante,
                         subject=assunto,
                         html_content=corpo_html
                     )
-                    
                     sendgrid_client = SendGridAPIClient(api_key)
                     response = sendgrid_client.send(message)
                     print(f"E-mail enviado para SendGrid. Status: {response.status_code}")
             except Exception as e:
                 print(f"Erro ao tentar enviar e-mail via SendGrid: {e}")
-
             return redirect('chamado_sucesso', chamado_id=novo_chamado.id)
     else:
         initial_data = {}
@@ -48,7 +44,6 @@ def abrir_chamado_view(request):
         elif 'email_solicitante' in request.session:
             initial_data['email_solicitante'] = request.session.get('email_solicitante')
         form = ChamadoForm(initial=initial_data)
-    
     contexto = {'form': form}
     return render(request, 'chamados/abrir_chamado.html', contexto)
 
@@ -134,15 +129,3 @@ def editar_chamado_view(request, chamado_id):
     chamado = get_object_or_404(Chamado, pk=chamado_id)
     usuario_logado = request.user
     is_coordenador = usuario_logado.groups.filter(name='Coordenadores').exists()
-    is_tecnico_responsavel = (chamado.tecnico_responsavel == usuario_logado)
-    if not (is_coordenador or is_tecnico_responsavel):
-        raise PermissionDenied
-    if request.method == 'POST':
-        form = ChamadoUpdateForm(request.POST, instance=chamado)
-        if form.is_valid():
-            form.save()
-            return redirect('painel')
-    else:
-        form = ChamadoUpdateForm(instance=chamado)
-    contexto = {'form': form, 'chamado': chamado}
-    return render(request, 'chamados/editar_chamado.html', contexto)
