@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from urllib.parse import quote
-from django.urls import reverse
-from ..forms import ChamadoUpdateForm, InteracaoForm, ChamadoFilterForm, AtribuicaoTecnicoForm, PendenciaForm, CancelamentoForm
+from ..forms import (
+    ChamadoUpdateForm, InteracaoForm, ChamadoFilterForm, 
+    AtribuicaoTecnicoForm, PendenciaForm, CancelamentoForm
+)
 from ..models import Chamado, Interacao
 from .. import emails
 
@@ -21,8 +22,10 @@ def painel_view(request):
 def painel_coordenador_view(request):
     if not request.user.groups.filter(name='Coordenadores').exists():
         raise PermissionDenied
+    
     titulo_pagina = "Painel do Coordenador"
     chamados_qs = Chamado.objects.all()
+    
     filter_form = ChamadoFilterForm(request.GET)
     atribuicao_form = AtribuicaoTecnicoForm()
     pendencia_form = PendenciaForm()
@@ -41,10 +44,11 @@ def painel_coordenador_view(request):
         if tecnico:
             chamados_qs = chamados_qs.filter(tecnico_responsavel=tecnico)
     else:
+        # Se os filtros não forem usados, esconde arquivados/cancelados por padrão
         chamados_qs = chamados_qs.exclude(status__in=['ARQUIVADO', 'CANCELADO'])
 
     chamados_qs = chamados_qs.order_by('-data_modificacao')
-
+    
     contexto = {
         'chamados': chamados_qs,
         'titulo_pagina': titulo_pagina,
@@ -59,9 +63,11 @@ def painel_coordenador_view(request):
 def painel_tecnico_view(request):
     if not request.user.groups.filter(name='Técnicos').exists():
         raise PermissionDenied
+
     titulo_pagina = "Meus Chamados Atribuídos"
     chamados = Chamado.objects.filter(tecnico_responsavel=request.user).exclude(status__in=['ARQUIVADO', 'CANCELADO']).order_by('-data_modificacao')
     pendencia_form = PendenciaForm()
+    
     contexto = {
         'chamados': chamados,
         'titulo_pagina': titulo_pagina,
@@ -79,11 +85,15 @@ def editar_chamado_view(request, chamado_id):
     if not (is_coordenador or is_tecnico_responsavel):
         raise PermissionDenied
     
-    if request.method == 'POST':
-        form_edicao = ChamadoUpdateForm(request.POST, instance=chamado, user=usuario_logado)
-        form_interacao = InteracaoForm(request.POST)
+    # Prepara os formulários para o GET e para o caso de um POST inválido
+    form_edicao = ChamadoUpdateForm(instance=chamado, user=usuario_logado)
+    form_interacao = InteracaoForm()
+    cancelamento_form = CancelamentoForm()
 
+    if request.method == 'POST':
+        # Verifica qual dos botões de submit foi pressionado
         if 'salvar_edicao' in request.POST:
+            form_edicao = ChamadoUpdateForm(request.POST, instance=chamado, user=usuario_logado)
             if form_edicao.is_valid():
                 tecnico_anterior = chamado.tecnico_responsavel
                 status_anterior = chamado.status
@@ -102,6 +112,7 @@ def editar_chamado_view(request, chamado_id):
                 return redirect('painel')
         
         elif 'enviar_interacao' in request.POST:
+            form_interacao = InteracaoForm(request.POST)
             if form_interacao.is_valid():
                 nova_interacao = form_interacao.save(commit=False)
                 nova_interacao.chamado = chamado
@@ -110,13 +121,11 @@ def editar_chamado_view(request, chamado_id):
                 chamado.save()
                 emails.enviar_email_nova_interacao(nova_interacao, request)
                 return redirect('editar_chamado', chamado_id=chamado.id)
-    else:
-        form_edicao = ChamadoUpdateForm(instance=chamado, user=usuario_logado)
-        form_interacao = InteracaoForm()
-
+    
     contexto = {
         'form_edicao': form_edicao,
         'form_interacao': form_interacao,
         'chamado': chamado,
+        'cancelamento_form': cancelamento_form,
     }
     return render(request, 'chamados/editar_chamado.html', contexto)

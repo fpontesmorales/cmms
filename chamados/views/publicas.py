@@ -1,14 +1,6 @@
-import os
 from django.shortcuts import render, redirect, get_object_or_404
-from django.core.paginator import Paginator
-from django.template.loader import render_to_string
-from django.urls import reverse
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-from ..forms import (
-    ChamadoForm, ConsultaChamadoForm, InteracaoForm, AvaliacaoForm, 
-    ReaberturaForm, PublicChamadoFilterForm
-)
+from django.contrib.auth.decorators import login_required
+from ..forms import ChamadoForm, ConsultaChamadoForm, InteracaoForm, AvaliacaoForm, ReaberturaForm
 from ..models import Chamado, Interacao
 from .. import emails
 
@@ -45,50 +37,32 @@ def chamado_sucesso_view(request, chamado_id):
 def consultar_chamado_view(request):
     chamados_encontrados = None
     email_buscado = None
-
-    # Lógica para determinar qual e-mail usar
+    form = ConsultaChamadoForm()
+    if request.user.is_authenticated:
+        email_buscado = request.user.email
+    elif 'email_solicitante' in request.session:
+        email_buscado = request.session.get('email_solicitante')
     if request.method == 'POST':
-        form_email = ConsultaChamadoForm(request.POST)
-        if form_email.is_valid():
-            email_buscado = form_email.cleaned_data['email_solicitante']
+        form_post = ConsultaChamadoForm(request.POST)
+        if form_post.is_valid():
+            email_buscado = form_post.cleaned_data['email_solicitante']
             request.session['email_solicitante'] = email_buscado
-    else:
-        if request.user.is_authenticated:
-            email_buscado = request.user.email
-        elif 'email_solicitante' in request.session:
-            email_buscado = request.session.get('email_solicitante')
-    
-    # Prepara o formulário de filtro com os dados da URL (GET)
-    filter_form = PublicChamadoFilterForm(request.GET)
-
-    # Se tivermos um e-mail, fazemos a busca
+        form = form_post
     if email_buscado:
-        lista_chamados = Chamado.objects.filter(
-            email_solicitante__iexact=email_buscado
-        ).order_by('-data_modificacao')
-        
-        if filter_form.is_valid():
-            status_filtrado = filter_form.cleaned_data.get('status')
-            if status_filtrado:
-                lista_chamados = lista_chamados.filter(status=status_filtrado)
-        
-        paginator = Paginator(lista_chamados, 10)
-        page_number = request.GET.get('page')
-        chamados_encontrados = paginator.get_page(page_number)
-    
-    # Garante que o formulário de e-mail seja sempre o correto
-    if not request.POST and email_buscado:
-        form_email = ConsultaChamadoForm(initial={'email_solicitante': email_buscado})
-    elif not request.POST:
-        form_email = ConsultaChamadoForm()
+        lista_chamados = Chamado.objects.filter(email_solicitante__iexact=email_buscado).order_by('-data_modificacao')
+        filter_form = PublicChamadoFilterForm(request.GET, queryset=lista_chamados)
+        chamados_encontrados = filter_form.qs
+    else:
+        filter_form = PublicChamadoFilterForm(queryset=Chamado.objects.none())
 
     contexto = {
-        'form_email': form_email,
+        'form_email': form_post if 'form_post' in locals() else form,
         'filter_form': filter_form,
         'chamados_encontrados': chamados_encontrados,
         'email_buscado': email_buscado,
     }
     return render(request, 'chamados/consultar_chamado.html', contexto)
+
 
 def chamado_detalhe_view(request, chamado_id):
     chamado = get_object_or_404(Chamado, pk=chamado_id)

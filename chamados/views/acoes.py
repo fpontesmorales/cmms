@@ -64,17 +64,15 @@ def cancelar_chamado_view(request, chamado_id):
     if not request.user.groups.filter(name='Coordenadores').exists():
         raise PermissionDenied
     chamado = get_object_or_404(Chamado, pk=chamado_id)
-    form = CancelamentoForm(request.POST or None)
     if request.method == 'POST':
+        form = CancelamentoForm(request.POST)
         if form.is_valid():
             motivo = form.cleaned_data['motivo']
             Interacao.objects.create(chamado=chamado, usuario=request.user, mensagem=f"Chamado cancelado. Motivo: {motivo}")
             chamado.status = 'CANCELADO'
             chamado.save()
             emails.enviar_email_status_alterado(chamado, request)
-            return redirect('painel')
-    # Esta parte é para o caso de querermos um formulário GET no futuro, não afeta o modal atual
-    return redirect('editar_chamado', chamado_id=chamado_id)
+    return redirect('painel')
 
 def avaliar_chamado_view(request, chamado_id):
     chamado = get_object_or_404(Chamado, pk=chamado_id)
