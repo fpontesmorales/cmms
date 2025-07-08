@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from urllib.parse import quote
 from django.urls import reverse
-from ..forms import ChamadoUpdateForm, InteracaoForm, ChamadoFilterForm, AtribuicaoTecnicoForm, PendenciaForm
+from ..forms import ChamadoUpdateForm, InteracaoForm, ChamadoFilterForm, AtribuicaoTecnicoForm, PendenciaForm, CancelamentoForm
 from ..models import Chamado, Interacao
 from .. import emails
 
@@ -26,7 +26,7 @@ def painel_coordenador_view(request):
     filter_form = ChamadoFilterForm(request.GET)
     atribuicao_form = AtribuicaoTecnicoForm()
     pendencia_form = PendenciaForm()
-    cancelamento_form = PendenciaForm(prefix='cancel')
+    cancelamento_form = CancelamentoForm()
 
     if filter_form.is_valid():
         status = filter_form.cleaned_data.get('status')
@@ -44,11 +44,6 @@ def painel_coordenador_view(request):
         chamados_qs = chamados_qs.exclude(status__in=['ARQUIVADO', 'CANCELADO'])
 
     chamados_qs = chamados_qs.order_by('-data_modificacao')
-
-    # Adiciona o texto de cópia a cada chamado na lista
-    for chamado in chamados_qs:
-        texto_whatsapp = chamado.get_whatsapp_message()
-        chamado.texto_para_copiar = quote(texto_whatsapp)
 
     contexto = {
         'chamados': chamados_qs,
