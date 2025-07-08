@@ -1,6 +1,5 @@
 from django.contrib import admin
 from .models import Chamado, Interacao
-from django.contrib.auth.models import User
 
 class InteracaoInline(admin.TabularInline):
     model = Interacao
@@ -24,8 +23,6 @@ class ChamadoAdmin(admin.ModelAdmin):
                 instance.usuario = request.user
             instance.save()
         formset.save_m2m()
-        # Força a atualização do chamado pai para atualizar a data_modificacao
-        form.instance.save()
 
 @admin.register(Interacao)
 class InteracaoAdmin(admin.ModelAdmin):

@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import Chamado, Interacao
 from cadastros.models import Bloco, Sala, TipoServico
-from inventario.models import Ativo, TipoAtivo
+from inventario.models import Ativo
 
 class ChamadoForm(forms.ModelForm):
     bloco = forms.ModelChoiceField(queryset=Bloco.objects.all(), label="Bloco do Serviço", empty_label="--- Selecione um Bloco ---")
@@ -72,32 +72,27 @@ class PendenciaForm(forms.Form):
 class ChamadoFilterForm(forms.Form):
     status = forms.ChoiceField(choices=[('', 'Todos os Status')] + Chamado.STATUS_CHOICES, required=False, label="Filtrar por Status")
     tecnico_responsavel = forms.ModelChoiceField(queryset=User.objects.filter(groups__name='Técnicos'), required=False, label="Filtrar por Técnico", empty_label="Todos os Técnicos")
-    incluir_arquivados = forms.BooleanField(label="Incluir Arquivados", required=False)
+    incluir_arquivados = forms.BooleanField(label="Incluir Finalizados", required=False)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             if not isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs['class'] = 'form-control'
 
-class ReaberturaForm(forms.Form):
-    motivo = forms.CharField(label="Motivo da Reabertura", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Ex: O problema voltou a acontecer.'}))
-
 class AvaliacaoForm(forms.ModelForm):
-    NOTA_CHOICES = [
-        ('', '--- Selecione uma nota ---'),
-        (5, '5 Estrelas - Excelente'),
-        (4, '4 Estrelas - Bom'),
-        (3, '3 Estrelas - Regular'),
-        (2, '2 Estrelas - Ruim'),
-        (1, '1 Estrela - Péssimo'),
-    ]
-    nota_avaliacao = forms.ChoiceField(
-        choices=NOTA_CHOICES, 
-        label="Sua Avaliação",
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
+    NOTA_CHOICES = [('', '--- Selecione uma nota ---'), (5, '5 Estrelas - Excelente'), (4, '4 Estrelas - Bom'), (3, '3 Estrelas - Regular'), (2, '2 Estrelas - Ruim'), (1, '1 Estrela - Péssimo')]
+    nota_avaliacao = forms.ChoiceField(choices=NOTA_CHOICES, label="Sua Avaliação", widget=forms.Select(attrs={'class': 'form-select'}))
     class Meta:
         model = Chamado
         fields = ['nota_avaliacao', 'comentario_avaliacao']
         labels = {'comentario_avaliacao': 'Comentário (opcional)'}
         widgets = {'comentario_avaliacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3})}
+
+class ReaberturaForm(forms.Form):
+    motivo = forms.CharField(label="Motivo da Reabertura", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Ex: O problema voltou a acontecer.'}))
+
+class CancelamentoForm(forms.Form):
+    motivo = forms.CharField(label="Motivo do Cancelamento", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Ex: Chamado aberto em duplicidade.'}))
+
+class PublicChamadoFilterForm(forms.Form):
+    status = forms.ChoiceField(choices=[('', 'Todos os Status')] + Chamado.STATUS_CHOICES, required=False, label="Filtrar por Status", widget=forms.Select(attrs={'class': 'form-select'}))

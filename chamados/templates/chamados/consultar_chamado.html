@@ -1,88 +1,83 @@
 {% extends 'chamados/base.html' %}
 {% load static %}
 {% block title %}Consultar Meus Chamados - CMMS INFRA-IFCE{% endblock %}
-
 {% block content %}
 <style>
-    .clickable-row {
-        cursor: pointer;
-    }
+    .clickable-row { cursor: pointer; }
 </style>
 
 <div class="row justify-content-center">
     <div class="col-md-12">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h1 class="h4 mb-0">Consultar Meus Chamados</h1>
-            </div>
+            <div class="card-header bg-primary text-white"><h1 class="h4 mb-0">Consultar Meus Chamados</h1></div>
             <div class="card-body">
                 {% if user.is_authenticated %}
-                    <p class="lead">Como você está logado, estamos exibindo os chamados para o e-mail associado à sua conta: <strong>{{ user.email }}</strong></p>
+                    <p class="lead">Exibindo chamados para o e-mail da sua conta: <strong>{{ user.email }}</strong></p>
                 {% else %}
                     <p>Digite o e-mail que você utilizou na abertura dos chamados para ver o histórico.</p>
                     <form method="post">
                         {% csrf_token %}
                         <div class="input-group">
-                            {{ form.email_solicitante }}
-                            <button type="submit" class="btn btn-primary">Consultar</button>
+                            {{ form_email.email_solicitante }}
+                            <button type="submit" class="btn btn-primary">Buscar</button>
                         </div>
                     </form>
                 {% endif %}
             </div>
         </div>
 
-        {% if email_buscado %}
+        {% if chamados_encontrados %}
         <div class="card">
-            <div class="card-header"><h2 class="h5 mb-0">Resultados para: {{ email_buscado }}</h2></div>
+            <div class="card-header">
+                <form method="get" class="row g-2 align-items-center">
+                    <div class="col-auto"><h2 class="h5 mb-0">Resultados para: {{ email_buscado }}</h2></div>
+                    <div class="col-md-4">{{ filter_form.status }}</div>
+                    <div class="col-auto"><button type="submit" class="btn btn-secondary btn-sm">Filtrar</button></div>
+                </form>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover table-striped mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#ID</th>
-                            <th>Status</th>
-                            <th>Tipo de Serviço</th>
-                            <th>Local</th>
-                            <th>Descrição</th>
-                            <th>Última Atualização</th>
-                        </tr>
-                    </thead>
+                    <thead class="table-light"><tr><th>#ID</th><th>Status</th><th>Tipo de Serviço</th><th>Local</th><th>Descrição</th><th>Última Atualização</th></tr></thead>
                     <tbody>
                         {% for chamado in chamados_encontrados %}
                         <tr class="clickable-row" data-href="{% url 'chamado_detalhe' chamado.id %}">
                             <th>{{ chamado.id }}</th>
-                            <td>
-                                {% if chamado.status == 'ABERTA' %}<span class="badge bg-warning text-dark">{{ chamado.get_status_display }}</span>
-                                {% elif chamado.status == 'EM_ANALISE' or chamado.status == 'EM_EXECUCAO' %}<span class="badge bg-info text-dark">{{ chamado.get_status_display }}</span>
-                                {% elif chamado.status == 'CONCLUIDO' %}<span class="badge bg-success">{{ chamado.get_status_display }}</span>
-                                {% else %}<span class="badge bg-secondary">{{ chamado.get_status_display }}</span>
-                                {% endif %}
-                            </td>
+                            <td>{% if chamado.status == 'ABERTA' %}<span class="badge bg-warning text-dark">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'EM_ANALISE' or chamado.status == 'EM_EXECUCAO' %}<span class="badge bg-info text-dark">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'CONCLUIDO' %}<span class="badge bg-success">{{ chamado.get_status_display }}</span>{% else %}<span class="badge bg-secondary">{{ chamado.get_status_display }}</span>{% endif %}</td>
                             <td>{{ chamado.tipo_servico.nome }}</td>
                             <td>{{ chamado.sala }}</td>
                             <td>{{ chamado.descricao|truncatewords:8 }}</td>
                             <td>{{ chamado.data_modificacao|date:"d/m/Y H:i" }}</td>
                         </tr>
-                        {% empty %}
-                        <tr><td colspan="6" class="text-center py-4">Nenhum chamado encontrado para este e-mail.</td></tr>
-                        {% endfor %}
+                        {% empty %}<tr><td colspan="6" class="text-center py-4">Nenhum chamado encontrado para esta busca/filtro.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% if chamados_encontrados.has_other_pages %}
+            <div class="card-footer">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if chamados_encontrados.has_previous %}
+                            <li class="page-item"><a class="page-link" href="?page=1&status={{ request.GET.status|default:'' }}">&laquo; Primeira</a></li>
+                            <li class="page-item"><a class="page-link" href="?page={{ chamados_encontrados.previous_page_number }}&status={{ request.GET.status|default:'' }}">Anterior</a></li>
+                        {% endif %}
+                        <li class="page-item active"><span class="page-link">Página {{ chamados_encontrados.number }} de {{ chamados_encontrados.paginator.num_pages }}</span></li>
+                        {% if chamados_encontrados.has_next %}
+                            <li class="page-item"><a class="page-link" href="?page={{ chamados_encontrados.next_page_number }}&status={{ request.GET.status|default:'' }}">Próxima</a></li>
+                            <li class="page-item"><a class="page-link" href="?page={{ chamados_encontrados.paginator.num_pages }}&status={{ request.GET.status|default:'' }}">Última &raquo;</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 </div>
 {% endblock %}
-
-{% block scripts %}
-<script>
+{% block scripts %}<script>
     document.addEventListener('DOMContentLoaded', function() {
-        const rows = document.querySelectorAll('.clickable-row');
-        rows.forEach(function(row) {
-            row.addEventListener('click', function() {
-                window.location.href = this.dataset.href;
-            });
+        document.querySelectorAll('.clickable-row').forEach(row => {
+            row.addEventListener('click', () => { window.location.href = row.dataset.href; });
         });
     });
-</script>
-{% endblock %}
+</script>{% endblock %}

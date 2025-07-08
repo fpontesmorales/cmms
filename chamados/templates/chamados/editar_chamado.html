@@ -1,76 +1,42 @@
 {% extends 'chamados/base.html' %}
-
 {% block title %}Gerenciar Chamado #{{ chamado.id }}{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-lg-7">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1 class="h2">Gerenciar Chamado #{{ chamado.id }}</h1>
-            <a href="{% url 'painel' %}" class="btn btn-secondary">Voltar ao Painel</a>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h1 class="h2 mb-0">Gerenciar Chamado #{{ chamado.id }}</h1>
+            <div>
+                <span id="texto-para-copiar-{{ chamado.id }}" class="d-none">{{ chamado.get_whatsapp_message }}</span>
+                <button class="btn btn-sm btn-info btn-copy" data-chamado-id="{{ chamado.id }}" title="Copiar Detalhes">
+                    <i class="fas fa-copy"></i> Copiar
+                </button>
+                <a href="{% url 'painel' %}" class="btn btn-sm btn-secondary">Voltar ao Painel</a>
+            </div>
         </div>
         
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span>Aberto em: {{ chamado.data_abertura|date:"d/m/Y à\s H:i" }}</span>
-                {% if chamado.status == 'ABERTA' %}<span class="badge bg-warning text-dark">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'EM_ANALISE' %}<span class="badge bg-secondary">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'EM_EXECUCAO' %}<span class="badge bg-info text-dark">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'PENDENTE' %}<span class="badge bg-danger">{{ chamado.get_status_display }}</span>{% elif chamado.status == 'CONCLUIDO' %}<span class="badge bg-success">{{ chamado.get_status_display }}</span>{% else %}<span class="badge bg-dark">{{ chamado.get_status_display }}</span>{% endif %}
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">{{ chamado.tipo_servico.nome }}</h5>
-                <h6 class="card-subtitle mb-2 text-muted">Local: {{ chamado.sala }}</h6>
-                <p><strong>Solicitante:</strong> {{ chamado.email_solicitante }}</p>
-                <hr>
-                <p class="card-text"><strong>Descrição do Problema:</strong></p>
-                <p class="p-3 bg-light border rounded">{{ chamado.descricao|linebreaksbr }}</p>
-                {% if chamado.foto %}<p><strong>Foto Anexada:</strong><br><img src="{{ chamado.foto.url }}" class="img-fluid rounded border" alt="Foto do chamado"></p>{% endif %}
-            </div>
-        </div>
-
-        <h2 class="h4">Histórico de Interações</h2>
-        <hr>
-        {% for interacao in chamado.interacoes.all %}
-            <div class="card mb-3 {% if interacao.usuario %}border-primary{% else %}border-secondary{% endif %}">
-                <div class="card-header small text-muted {% if interacao.usuario %}bg-primary-subtle{% endif %}">
-                    <strong>{% if interacao.usuario %}{{ interacao.usuario.get_full_name|default:interacao.usuario.username }}{% else %}Solicitante{% endif %}</strong>
-                    respondeu em {{ interacao.data_interacao|date:"d/m/Y à\s H:i" }}
-                </div>
-                <div class="card-body">{{ interacao.mensagem|linebreaksbr }}</div>
-            </div>
-        {% empty %}
-            <p class="text-muted">Nenhuma interação neste chamado ainda.</p>
-        {% endfor %}
-    </div>
-
-    <div class="col-lg-5">
-        <div class="card sticky-top" style="top: 2rem;">
-            <div class="card-header"><h4>Ações da Equipe</h4></div>
-            <div class="card-body">
-                <h5>Atualizar Status e Atribuição</h5>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">{{ form_edicao.status.label }}</label>
-                        {{ form_edicao.status }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">{{ form_edicao.tecnico_responsavel.label }}</label>
-                        {{ form_edicao.tecnico_responsavel }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">{{ form_edicao.observacoes_tecnicas.label }}</label>
-                        {{ form_edicao.observacoes_tecnicas }}
-                    </div>
-                    <button type="submit" name="salvar_edicao" class="btn btn-primary">Salvar Alterações</button>
-                </form>
-                <hr>
-                <h5>Adicionar Comentário Interno</h5>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">{{ form_interacao.mensagem }}</div>
-                    <button type="submit" name="enviar_interacao" class="btn btn-secondary">Enviar Mensagem</button>
-                </form>
-            </div>
         </div>
     </div>
-</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Adiciona o evento de clique a TODOS os botões de copiar
+    document.querySelectorAll('.btn-copy').forEach(button => {
+        button.addEventListener('click', function() {
+            const chamadoId = this.getAttribute('data-chamado-id');
+            const textoParaCopiar = document.getElementById(`texto-para-copiar-${chamadoId}`).textContent;
+            
+            navigator.clipboard.writeText(textoParaCopiar.trim()).then(() => {
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                setTimeout(() => { this.innerHTML = originalText; }, 2000);
+            }, (err) => {
+                console.error('Falha ao copiar texto: ', err);
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
