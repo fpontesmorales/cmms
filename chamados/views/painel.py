@@ -45,6 +45,11 @@ def painel_coordenador_view(request):
 
     chamados_qs = chamados_qs.order_by('-data_modificacao')
 
+    # Adiciona o texto de cópia a cada chamado na lista
+    for chamado in chamados_qs:
+        texto_whatsapp = chamado.get_whatsapp_message()
+        chamado.texto_para_copiar = quote(texto_whatsapp)
+
     contexto = {
         'chamados': chamados_qs,
         'titulo_pagina': titulo_pagina,
@@ -80,9 +85,8 @@ def editar_chamado_view(request, chamado_id):
         raise PermissionDenied
     
     if request.method == 'POST':
-        # Instancia os dois formulários com os dados do POST ou vazios
-        form_edicao = ChamadoUpdateForm(request.POST or None, instance=chamado, user=usuario_logado)
-        form_interacao = InteracaoForm(request.POST or None)
+        form_edicao = ChamadoUpdateForm(request.POST, instance=chamado, user=usuario_logado)
+        form_interacao = InteracaoForm(request.POST)
 
         if 'salvar_edicao' in request.POST:
             if form_edicao.is_valid():
@@ -112,6 +116,12 @@ def editar_chamado_view(request, chamado_id):
                 emails.enviar_email_nova_interacao(nova_interacao, request)
                 return redirect('editar_chamado', chamado_id=chamado.id)
     else:
-        # Se não for POST, instancia os formulários com os dados existentes
         form_edicao = ChamadoUpdateForm(instance=chamado, user=usuario_logado)
-        form_interacao = Inter
+        form_interacao = InteracaoForm()
+
+    contexto = {
+        'form_edicao': form_edicao,
+        'form_interacao': form_interacao,
+        'chamado': chamado,
+    }
+    return render(request, 'chamados/editar_chamado.html', contexto)
