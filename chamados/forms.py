@@ -12,7 +12,7 @@ class ChamadoForm(forms.ModelForm):
     class Meta:
         model = Chamado
         fields = ['email_solicitante', 'bloco', 'sala', 'tipo_servico', 'ativo', 'descricao', 'foto']
-        widgets = {'descricao': forms.Textarea(attrs={'rows': 4}),}
+        widgets = {'descricao': forms.Textarea(attrs={'rows': 4})}
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
@@ -95,4 +95,9 @@ class CancelamentoForm(forms.Form):
     motivo = forms.CharField(label="Motivo do Cancelamento", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Ex: Chamado aberto em duplicidade.'}))
 
 class PublicChamadoFilterForm(forms.Form):
-    status = forms.ChoiceField(choices=[('', 'Todos os Status')] + Chamado.STATUS_CHOICES, required=False, label="Filtrar por Status", widget=forms.Select(attrs={'class': 'form-select'}))
+    status = forms.ChoiceField(
+        choices=[('', 'Todos os Status')] + Chamado.STATUS_CHOICES,
+        required=False,
+        label="Filtrar por Status",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )

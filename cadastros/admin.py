@@ -1,7 +1,18 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Bloco, Sala, TipoServico, TipoPiso, TipoForro, TipoPintura, TipoPorta
+from .models import Bloco, Sala, TipoServico, TipoPiso, TipoForro, TipoPintura, TipoPorta, Funcao, PerfilUsuario
+
+class PerfilUsuarioInline(admin.StackedInline):
+    model = PerfilUsuario
+    can_delete = False
+    verbose_name_plural = 'Perfil do Usuário'
+    fk_name = 'usuario'
+
+class CustomUserAdmin(BaseUserAdmin):
+    inlines = (PerfilUsuarioInline,)
 
 class SalaInline(admin.TabularInline):
     model = Sala
@@ -14,6 +25,7 @@ class BlocoAdmin(admin.ModelAdmin):
     inlines = [SalaInline]
     search_fields = ('nome',)
     ordering = ('nome',)
+
     def ver_salas_link(self, obj):
         contagem = obj.sala_set.count()
         url = (reverse("admin:cadastros_sala_changelist") + f"?bloco__id__exact={obj.id}")
@@ -32,8 +44,14 @@ class SalaAdmin(admin.ModelAdmin):
     )
     ordering = ('bloco__nome', 'nome')
 
+# Re-registra o modelo User com nosso admin customizado
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+# Registra os outros modelos
 admin.site.register(TipoServico)
 admin.site.register(TipoPiso)
 admin.site.register(TipoForro)
 admin.site.register(TipoPintura)
 admin.site.register(TipoPorta)
+admin.site.register(Funcao)
